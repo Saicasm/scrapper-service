@@ -9,3 +9,6 @@ init_dependency:
 
 copy_env:
 	cp .env .env.local
+
+run:
+	@go run cmd/main.go
