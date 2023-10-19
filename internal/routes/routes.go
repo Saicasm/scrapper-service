@@ -3,8 +3,10 @@ package routes
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/scraper/internal/controllers"
 	"github.com/scraper/internal/handlers"
 	"github.com/scraper/internal/middleware"
+	"github.com/sirupsen/logrus"
 )
 
 func SetupRoutes(r *gin.Engine) {
@@ -22,6 +24,17 @@ func SetupRoutes(r *gin.Engine) {
 		{
 			tasks.GET("/health", handlers.Health)
 			tasks.POST("/", handlers.IngestData)
+		}
+	}
+}
+
+func SetupControllerRoutes(router *gin.Engine, linkedInController *controllers.LinkedInController, log *logrus.Logger) {
+	v1 := router.Group("/api/v1")
+	{
+		jobs := v1.Group("/ingest")
+		{
+			jobs.POST("/", linkedInController.CreateJob)
+			// Define other routes
 		}
 	}
 }

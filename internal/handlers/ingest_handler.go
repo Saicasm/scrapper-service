@@ -57,6 +57,7 @@ func Health(c *gin.Context) {
 //}
 
 func IngestData(c *gin.Context) {
+
 	// Read the request body
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
