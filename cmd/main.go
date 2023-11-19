@@ -23,7 +23,7 @@ func main() {
 	linkedInRepository := repositories.NewLinkedInRepository(linkedInCollection, log)
 	// Create a LinkedInService and pass the repository
 	linkedInService := services.NewLinkedInService(linkedInRepository, log)
-	linkedInController := controllers.NewLinkedInController(linkedInService, log)
+	linkedInController := controllers.NewLinkedInController(linkedInService, log, "http://127.0.0.1:5000/api/v1/extractor/analyse")
 	routes.SetupControllerRoutes(r, linkedInController, log)
 	port := constants.ServerPort
 	log.Printf("Server is running on port %s", port)
