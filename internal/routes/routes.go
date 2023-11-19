@@ -29,6 +29,13 @@ func SetupRoutes(r *gin.Engine) {
 }
 
 func SetupControllerRoutes(router *gin.Engine, linkedInController *controllers.LinkedInController, log *logrus.Logger) {
+	router.Use(gin.Recovery())
+	router.Use(middleware.LoggingMiddleware())
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"*"} // Replace with your allowed origins
+	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+	router.Use(cors.New(config))
+
 	v1 := router.Group("/api/v1")
 	{
 		jobs := v1.Group("/ingest")
