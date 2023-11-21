@@ -54,6 +54,7 @@ func (c *LinkedInController) CreateJob(ctx *gin.Context) {
 	companyChan := make(chan string)
 
 	// Launch Goroutines to extract data from different elements
+	// TODO: Extract skills from the description  chan
 	go extractData(doc, ".job-details-jobs-unified-top-card__job-title", titleChan)
 	go extractData(doc, ".jobs-description__content", descriptionChan)
 	go extractData(doc, ".jobs-description__content", skillsChan)
@@ -61,18 +62,27 @@ func (c *LinkedInController) CreateJob(ctx *gin.Context) {
 	go extractData(doc, ".job-details-jobs-unified-top-card__primary-description", companyChan)
 	// Receive extracted data from channels
 
+	// Store the data into the structs
 	linkedin.Title = <-titleChan
 	linkedin.JobDescription = <-descriptionChan
 	linkedin.Skills = <-skillsChan
 	linkedin.Compensation = <-compensationChan
 	linkedin.CompanyName = <-companyChan
+
 	// Clean the data
 	cleanData(&linkedin.Title)
 	cleanData(&linkedin.JobDescription)
 	cleanData(&linkedin.Skills)
-	removeWhitespaces(&linkedin.Compensation)
-	extractedSkills := linkedin.Skills
+	cleanData(&linkedin.Compensation)
+	fmt.Println("Compensation", linkedin.Compensation)
 
+	extractedSkills := linkedin.Skills
+	cleanedText := removeWhitespaces(linkedin.Compensation)
+
+	cleanedComp := extractCompensation(cleanedText)
+	fmt.Println("Cleamned one: ", cleanedComp)
+
+	linkedin.Compensation = cleanedComp
 	newSkills, err := c.sendSkillsToEndpoint(extractedSkills)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send skills data"})
@@ -96,15 +106,28 @@ func extractData(doc *goquery.Document, selector string, dataChan chan string) {
 
 	})
 }
+func extractCompensation(cleanedText string) string {
+	// Assuming the compensation is in the format "$X,XXX/month"
 
+	compensationHyphenIndex := strings.Index(cleanedText, "-")
+	if compensationHyphenIndex != -1 && (cleanedText[(compensationHyphenIndex-1)] == 'r') {
+		fmt.Println("Cleaned with hyphen", cleanedText[:(compensationHyphenIndex+(compensationHyphenIndex-1)+3)])
+		return cleanedText[:(compensationHyphenIndex + (compensationHyphenIndex - 1) + 3)]
+	} else {
+		compensationRIndex := strings.IndexByte(cleanedText, 'r')
+
+		fmt.Println("Cleaned COmp", cleanedText[:compensationRIndex+1])
+		return cleanedText[:compensationRIndex+1]
+	}
+}
 func cleanData(field *string) {
 	*field = strings.ReplaceAll(*field, "\n", " ") // Remove newline characters
 	*field = strings.TrimSpace(*field)             // Remove leading and trailing white spaces
 
 }
 
-func removeWhitespaces(input *string) {
-	strings.Join(strings.Fields(*input), "")
+func removeWhitespaces(input string) string {
+	return strings.Join(strings.Fields(input), "")
 }
 
 func splitNameFromJD(linkedData *models.LinkedIn) {
@@ -130,6 +153,7 @@ func splitNameFromJD(linkedData *models.LinkedIn) {
 	}
 }
 
+// The function is responsible for sending JD to extractor engine and filter out the skills from the JD
 func (c *LinkedInController) sendSkillsToEndpoint(skills string) (string, error) {
 	payload := []byte(`{"text": "` + skills + `"}`)
 	fmt.Println("payload", bytes.NewBuffer(payload))
