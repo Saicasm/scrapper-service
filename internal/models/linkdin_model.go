@@ -7,7 +7,7 @@ import (
 
 type LinkedIn struct {
 	ID             uuid.UUID `json:"_id" bson:"_id"`
-	CompanyName    string    `json:"company_ame" Usage:"required"`
+	CompanyName    string    `json:"company_name" Usage:"required"`
 	Compensation   string    `json:"compensation" Usage:"required,alphanumeric"`
 	Title          string    `json:"title"`
 	Skills         string    `json:"skills"`
