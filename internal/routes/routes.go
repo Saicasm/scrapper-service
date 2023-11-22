@@ -60,7 +60,8 @@ func SetupControllerRoutesForUser(router *gin.Engine, userController *controller
 		jobs := v1.Group("/ingest/user")
 		{
 			jobs.POST("/", userController.Create)
-			jobs.PUT("/update", userController.UpdateUser)
+			jobs.GET("/all", userController.GetAllUsers)
+			jobs.PUT("/update/:userId", userController.UpdateUser)
 			// Define other routes
 		}
 	}

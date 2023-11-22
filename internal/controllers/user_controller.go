@@ -6,8 +6,11 @@ import (
 	"github.com/scraper/internal/models"
 	"github.com/scraper/internal/services"
 	"github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
 	"net/http"
+	"time"
 )
 
 type UserController struct {
@@ -24,9 +27,6 @@ func NewUserController(service services.UserService, log *logrus.Logger, skillEn
 	}
 }
 
-func (c *UserController) UpdateUser(ctx *gin.Context) {
-
-}
 func (c *UserController) Create(ctx *gin.Context) {
 	c.Log.Debug("Create User")
 	user := models.NewUser()
@@ -40,5 +40,34 @@ func (c *UserController) Create(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create a new job"})
 	} else {
 		ctx.JSON(http.StatusCreated, user)
+	}
+}
+
+func (c *UserController) UpdateUser(ctx *gin.Context) {
+	userid := ctx.Param("userId")
+	objId, _ := primitive.ObjectIDFromHex(userid)
+	filter := bson.M{"_id": objId}
+	user := models.NewUser()
+	if err := ctx.BindJSON(&user); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": err})
+		log.Fatal(err)
+		return
+	}
+	update := bson.D{{"$set", bson.D{{"first_name", user.FirstName}, {"last_name", user.LastName}, {"skills", user.Skills}, {"location", user.Location}, {"email", user.Email}, {"updated_at", time.Now()}}}}
+	if err, res := c.Service.Update(filter, update); err != nil {
+		c.Log.WithError(err).Error("Failed to create a new job")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create a new job"})
+	} else {
+		ctx.JSON(http.StatusCreated, res)
+	}
+}
+
+func (c *UserController) GetAllUsers(ctx *gin.Context) {
+	c.Log.Debug("Get All Users")
+	if err, result := c.Service.GetAllUsers(); err != nil {
+		c.Log.WithError(err).Error("Failed to create a new job")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create a new job"})
+	} else {
+		ctx.JSON(http.StatusCreated, result)
 	}
 }

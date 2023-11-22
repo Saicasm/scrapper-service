@@ -30,13 +30,24 @@ func (s *UserService) Create(user *models.User) error {
 	}
 	return err
 }
-func (s *UserService) Update(user *models.User) error {
+func (s *UserService) Update(filter interface{}, update interface{}) (error, map[string]interface{}) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err := s.Repository.Create(ctx, user)
+	err, res := s.Repository.Update(ctx, filter, update)
 	if err != nil {
 		s.Log.WithError(err).Error("Failed to update user")
 	}
-	return err
+	return err, res
+}
+
+func (s *UserService) GetAllUsers() (error, []models.User) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err, result := s.Repository.GetAllUsers(ctx)
+	if err != nil {
+		s.Log.WithError(err).Error("Failed to get all users")
+	}
+	return err, result
 }

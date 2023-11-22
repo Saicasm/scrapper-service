@@ -2,9 +2,13 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"github.com/scraper/internal/models"
 	"github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"log"
 )
 
 type UserRepository struct {
@@ -27,13 +31,24 @@ func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
 	return err
 }
 
-//	func (r *UserRepository) Update(ctx context.Context, user *models.User) error {
-//		_, err := r.Collection.UpdateOne(ctx, user)
-//		if err != nil {
-//			r.Log.WithError(err).Error("Failed to create a new job")
-//		}
-//		return err
-//	}
+func (r *UserRepository) Update(ctx context.Context, filter interface{}, update interface{}) (error, map[string]interface{}) {
+	res, err := r.Collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		r.Log.WithError(err).Error("Failed to update User")
+	}
+	result := map[string]interface{}{"data": res}
+	if res.MatchedCount != 0 {
+		fmt.Println("matched and replaced an existing document")
+	}
+	if res.MatchedCount < 1 {
+		r.Log.WithError(err).Error("No user Found")
+	} else {
+		fmt.Printf("present")
+
+	}
+
+	return err, result
+}
 func (r *UserRepository) Delete(ctx context.Context, user *models.User) error {
 	_, err := r.Collection.DeleteOne(ctx, user)
 	if err != nil {
@@ -42,10 +57,38 @@ func (r *UserRepository) Delete(ctx context.Context, user *models.User) error {
 	return err
 }
 
-func (r *UserRepository) GetAllUsers(ctx context.Context, user *models.User) error {
-	_, err := r.Collection.Find(ctx, user)
+func (r *UserRepository) GetAllUsers(ctx context.Context) (error, []models.User) {
+
+	findOptions := options.Find()
+	//Set the limit of the number of record to find
+	findOptions.SetLimit(5)
+	res, err := r.Collection.Find(ctx, bson.D{{}}, findOptions)
 	if err != nil {
 		r.Log.WithError(err).Error("Failed to get all the users")
 	}
-	return err
+	var results []models.User
+
+	//Finding multiple documents returns a cursor
+	//Iterate through the cursor allows us to decode documents one at a time
+
+	for res.Next(context.TODO()) {
+		//Create a value into which the single document can be decoded
+		var elem models.User
+		err := res.Decode(&elem)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		results = append(results, elem)
+
+	}
+
+	if err := res.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	//Close the cursor once finished
+	res.Close(context.TODO())
+
+	return err, results
 }
