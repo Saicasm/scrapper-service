@@ -9,6 +9,7 @@ import (
 	"github.com/scraper/internal/models"
 	"github.com/scraper/internal/services"
 	"github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -68,7 +69,8 @@ func (c *LinkedInController) CreateJob(ctx *gin.Context) {
 	linkedin.Skills = <-skillsChan
 	linkedin.Compensation = <-compensationChan
 	linkedin.CompanyName = <-companyChan
-
+	//TODO: Get the data from the request
+	linkedin.UserId = "saicsm@gmail.com"
 	// Clean the data
 	cleanData(&linkedin.Title)
 	cleanData(&linkedin.JobDescription)
@@ -187,3 +189,15 @@ func (c *LinkedInController) sendSkillsToEndpoint(skills string) (string, error)
 }
 
 // Implement other CRUD operations in a similar manner.
+
+func (c *LinkedInController) GetJobsForUserID(ctx *gin.Context) {
+	userid := ctx.Param("userId")
+	filter := bson.M{"user_id": userid}
+	c.Log.Debug("Get Jobs For UserID ")
+	if err, result := c.Service.GetJobsForUser(filter); err != nil {
+		c.Log.WithError(err).Error("Failed to create a new job")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create a new job"})
+	} else {
+		ctx.JSON(http.StatusOK, result)
+	}
+}

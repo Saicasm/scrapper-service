@@ -41,6 +41,8 @@ func SetupControllerRoutes(router *gin.Engine, linkedInController *controllers.L
 		jobs := v1.Group("/ingest")
 		{
 			jobs.POST("/", linkedInController.CreateJob)
+			jobs.GET("/:userId", linkedInController.GetJobsForUserID)
+
 			// Define other routes
 		}
 	}
