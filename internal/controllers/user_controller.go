@@ -58,7 +58,7 @@ func (c *UserController) UpdateUser(ctx *gin.Context) {
 		c.Log.WithError(err).Error("Failed to create a new job")
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create a new job"})
 	} else {
-		ctx.JSON(http.StatusCreated, res)
+		ctx.JSON(http.StatusOK, res)
 	}
 }
 
@@ -68,6 +68,6 @@ func (c *UserController) GetAllUsers(ctx *gin.Context) {
 		c.Log.WithError(err).Error("Failed to create a new job")
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create a new job"})
 	} else {
-		ctx.JSON(http.StatusCreated, result)
+		ctx.JSON(http.StatusOK, result)
 	}
 }
