@@ -19,7 +19,7 @@ type LinkedIn struct {
 	CompanyName    string             `json:"company_name" Usage:"required" `
 	Compensation   string             `json:"compensation" Usage:"required,alphanumeric"`
 	Title          string             `json:"title"`
-	Skills         string             `json:"skills"`
+	Skills         []string           `json:"skills"`
 	JobDescription string             `json:"job_description"`
 	Location       string             `json:"location"`
 	Score          string             `json:"score" bson:"score"`
