@@ -62,3 +62,62 @@ func (r *LinkedInRepository) GetJobsForUser(ctx context.Context, filter interfac
 
 	return err, results
 }
+
+func (r *LinkedInRepository) GetAnalyticsForUser(ctx context.Context, filter interface{}) (error, interface{}) {
+	filter1 := bson.D{{"user_id", bson.D{{"$eq", filter}}}}
+	countInterested := bson.D{
+		{"$and",
+			bson.A{
+				bson.D{{"user_id", bson.D{{"$eq", filter}}}},
+				bson.D{{"status", bson.D{{"$eq", models.INTERESTED}}}},
+			},
+		},
+	}
+	countInProgress := bson.D{
+		{"$and",
+			bson.A{
+				bson.D{{"user_id", bson.D{{"$eq", filter}}}},
+				bson.D{{"status", bson.D{{"$eq", models.IN_PROGRESS}}}},
+			},
+		},
+	}
+	countRejected := bson.D{
+		{"$and",
+			bson.A{
+				bson.D{{"user_id", bson.D{{"$eq", filter}}}},
+				bson.D{{"status", bson.D{{"$eq", models.REJECTED}}}},
+			},
+		},
+	}
+	countApplied := bson.D{
+		{"$and",
+			bson.A{
+				bson.D{{"user_id", bson.D{{"$eq", filter}}}},
+				bson.D{{"status", bson.D{{"$eq", models.APPLIED}}}},
+			},
+		},
+	}
+	count, err := r.Collection.CountDocuments(context.TODO(), filter1)
+	if err != nil {
+		panic(err)
+	}
+	countResApplied, err := r.Collection.CountDocuments(context.TODO(), countApplied)
+	if err != nil {
+		panic(err)
+	}
+	countResRejected, err := r.Collection.CountDocuments(context.TODO(), countRejected)
+	if err != nil {
+		panic(err)
+	}
+	countResInProgress, err := r.Collection.CountDocuments(context.TODO(), countInProgress)
+	if err != nil {
+		panic(err)
+	}
+	countResIntrested, err := r.Collection.CountDocuments(context.TODO(), countInterested)
+	if err != nil {
+		panic(err)
+	}
+	result := map[string]interface{}{"count": count, "applied": countResApplied, "rejected": countResRejected, "in_progress": countResInProgress, "interested": countResIntrested}
+
+	return err, result
+}

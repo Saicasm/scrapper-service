@@ -264,3 +264,13 @@ func (c *LinkedInController) GetJobsForUserID(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, result)
 	}
 }
+func (c *LinkedInController) GetAnalyticsForUser(ctx *gin.Context) {
+	userid := ctx.Param("userId")
+	c.Log.Debug("Get Jobs For UserID ")
+	if err, result := c.Service.GetAnalyticsForUser(userid); err != nil {
+		c.Log.WithError(err).Error("Failed to get analytics for the user")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to analytics for the user"})
+	} else {
+		ctx.JSON(http.StatusOK, result)
+	}
+}

@@ -42,7 +42,7 @@ func SetupControllerRoutes(router *gin.Engine, linkedInController *controllers.L
 		{
 			jobs.POST("/:userId", linkedInController.CreateJob)
 			jobs.GET("/:userId", linkedInController.GetJobsForUserID)
-
+			jobs.GET("/analytics/:userId", linkedInController.GetAnalyticsForUser)
 			// Define other routes
 		}
 	}
