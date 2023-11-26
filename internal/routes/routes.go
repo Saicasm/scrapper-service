@@ -29,11 +29,42 @@ func SetupRoutes(r *gin.Engine) {
 }
 
 func SetupControllerRoutes(router *gin.Engine, linkedInController *controllers.LinkedInController, log *logrus.Logger) {
+	router.Use(gin.Recovery())
+	router.Use(middleware.LoggingMiddleware())
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"*"} // Replace with your allowed origins
+	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+	router.Use(cors.New(config))
+
 	v1 := router.Group("/api/v1")
 	{
 		jobs := v1.Group("/ingest")
 		{
-			jobs.POST("/", linkedInController.CreateJob)
+			jobs.POST("/:userId", linkedInController.CreateJob)
+			jobs.GET("/:userId", linkedInController.GetJobsForUserID)
+
+			// Define other routes
+		}
+	}
+}
+
+// TODO: Create strcut and have a single Setup method
+func SetupControllerRoutesForUser(router *gin.Engine, userController *controllers.UserController, log *logrus.Logger) {
+	router.Use(gin.Recovery())
+	router.Use(middleware.LoggingMiddleware())
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"*"} // Replace with your allowed origins
+	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+	router.Use(cors.New(config))
+
+	v1 := router.Group("/api/v1")
+	{
+		jobs := v1.Group("/ingest/user")
+		{
+			jobs.POST("/", userController.Create)
+			jobs.GET("/all", userController.GetAllUsers)
+			jobs.PUT("/update/:userId", userController.UpdateUser)
+			jobs.GET("/skills/:userId", userController.GetSkillsForUser)
 			// Define other routes
 		}
 	}

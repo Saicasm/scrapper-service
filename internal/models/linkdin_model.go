@@ -1,26 +1,37 @@
 package models
 
 import (
-	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
 
+type Status string
+
+const (
+	APPLIED     string = "APPLIED"
+	IN_PROGRESS string = "IN_PROGRESS"
+	REJECTED    string = "REJECTED"
+	INTERESTED  string = "INTERESTED"
+)
+
 type LinkedIn struct {
-	ID             uuid.UUID `json:"_id" bson:"_id"`
-	CompanyName    string    `json:"company_ame" Usage:"required"`
-	Compensation   string    `json:"compensation" Usage:"required,alphanumeric"`
-	Title          string    `json:"title"`
-	Skills         string    `json:"skills"`
-	JobDescription string    `json:"job_description"`
-	Location       string    `json:"location"`
-	Score          string    `json:"score"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	ID             primitive.ObjectID `json:"_id" bson:"_id"`
+	CompanyName    string             `json:"company_name" Usage:"required" `
+	Compensation   string             `json:"compensation" Usage:"required,alphanumeric"`
+	Title          string             `json:"title"`
+	Skills         []string           `json:"skills"`
+	JobDescription string             `json:"job_description" bson:"job_description"`
+	Location       string             `json:"location"`
+	Score          string             `json:"score" bson:"score"`
+	UserId         string             `json:"user_id" bson:"user_id"`
+	Status         Status             `json:"status"`
+	CreatedAt      time.Time          `json:"created_at"`
+	UpdatedAt      time.Time          `json:"updated_at"`
 }
 
 func NewLinkedIn() LinkedIn {
 	return LinkedIn{
-		ID:        uuid.New(),
+		ID:        primitive.NewObjectID(),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
