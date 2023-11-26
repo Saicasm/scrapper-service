@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/scraper/internal/models"
 	"github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
@@ -30,10 +31,10 @@ func (r *LinkedInRepository) Create(ctx context.Context, linkedin *models.Linked
 }
 
 func (r *LinkedInRepository) GetJobsForUser(ctx context.Context, filter interface{}) (error, []models.LinkedIn) {
+	findOptions := options.Find().SetProjection(bson.D{{"job_description", 0}}).SetLimit(100)
 
-	findOptions := options.Find()
 	//Set the limit of the number of record to find
-	findOptions.SetLimit(5)
+	//findOptions.SetLimit(100)
 	res, err := r.Collection.Find(ctx, filter, findOptions)
 	if err != nil {
 		r.Log.WithError(err).Error("Failed to get all the users")
