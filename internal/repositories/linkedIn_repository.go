@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"github.com/scraper/internal/models"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
@@ -28,6 +29,24 @@ func (r *LinkedInRepository) Create(ctx context.Context, linkedin *models.Linked
 		r.Log.WithError(err).Error("Failed to create a new job")
 	}
 	return err
+}
+func (r *LinkedInRepository) Update(ctx context.Context, filter interface{}, update interface{}) (error, map[string]interface{}) {
+	res, err := r.Collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		r.Log.WithError(err).Error("Failed to update Job")
+	}
+	result := map[string]interface{}{"data": res}
+	if res.MatchedCount != 0 {
+		fmt.Println("matched and replaced an existing document")
+	}
+	if res.MatchedCount < 1 {
+		r.Log.WithError(err).Error("No user Found")
+	} else {
+		fmt.Printf("present")
+
+	}
+
+	return err, result
 }
 
 func (r *LinkedInRepository) GetJobsForUser(ctx context.Context, filter interface{}) (error, []models.LinkedIn) {

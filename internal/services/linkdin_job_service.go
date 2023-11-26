@@ -26,18 +26,27 @@ func (s *LinkedInService) Create(linkedin *models.LinkedIn) error {
 
 	err := s.Repository.Create(ctx, linkedin)
 	if err != nil {
-		s.Log.WithError(err).Error("Failed to create a new todo")
+		s.Log.WithError(err).Error("Failed to create Job")
 	}
 	return err
 }
+func (s *LinkedInService) Update(filter interface{}, update interface{}) (error, map[string]interface{}) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
+	err, res := s.Repository.Update(ctx, filter, update)
+	if err != nil {
+		s.Log.WithError(err).Error("Failed to update Job")
+	}
+	return err, res
+}
 func (s *LinkedInService) GetJobsForUser(filter interface{}) (error, []models.LinkedIn) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	err, result := s.Repository.GetJobsForUser(ctx, filter)
 	if err != nil {
-		s.Log.WithError(err).Error("Failed to create a new todo")
+		s.Log.WithError(err).Error("Failed to get Job")
 	}
 	return err, result
 }
