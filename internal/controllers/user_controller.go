@@ -71,3 +71,15 @@ func (c *UserController) GetAllUsers(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, result)
 	}
 }
+
+func (c *UserController) GetSkillsForUser(ctx *gin.Context) {
+	userid := ctx.Param("userId")
+	filter := bson.M{"email": userid}
+	c.Log.Debug("Get All Users")
+	if err, result := c.Service.GetUserSkills(filter); err != nil {
+		c.Log.WithError(err).Error("Failed to create a new job")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create a new job"})
+	} else {
+		ctx.JSON(http.StatusOK, result)
+	}
+}

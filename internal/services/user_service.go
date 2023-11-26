@@ -51,3 +51,13 @@ func (s *UserService) GetAllUsers() (error, []models.User) {
 	}
 	return err, result
 }
+
+func (s *UserService) GetUserSkills(filter interface{}) (error, []string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	err, result := s.Repository.GetSkillsForUser(ctx, filter)
+	if err != nil {
+		s.Log.WithError(err).Error("Failed to get all users")
+	}
+	return err, result
+}

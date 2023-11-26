@@ -5,6 +5,15 @@ import (
 	"time"
 )
 
+type Status string
+
+const (
+	APPLIED     string = "APPLIED"
+	IN_PROGRESS string = "IN_PROGRESS"
+	REJECTED    string = "REJECTED"
+	INTERESTED  string = "INTERESTED"
+)
+
 type LinkedIn struct {
 	ID             primitive.ObjectID `json:"_id" bson:"_id"`
 	CompanyName    string             `json:"company_name" Usage:"required" `
@@ -15,6 +24,7 @@ type LinkedIn struct {
 	Location       string             `json:"location"`
 	Score          string             `json:"score" bson:"score"`
 	UserId         string             `json:"user_id" bson:"user_id"`
+	Status         Status             `json:"status"`
 	CreatedAt      time.Time          `json:"created_at"`
 	UpdatedAt      time.Time          `json:"updated_at"`
 }

@@ -57,6 +57,34 @@ func (r *UserRepository) Delete(ctx context.Context, user *models.User) error {
 	return err
 }
 
+func (r *UserRepository) GetSkillsForUser(ctx context.Context, filter interface{}) (error, []string) {
+	opts := options.Find().SetProjection(bson.D{{"skills", 1}, {"email", 1}, {"first_name", 1}})
+	res, err := r.Collection.Find(ctx, filter, opts)
+	if err != nil {
+		r.Log.WithError(err).Error("Failed to Get skills for user")
+	}
+	var results []models.User
+	for res.Next(context.TODO()) {
+		//Create a value into which the single document can be decoded
+		var elem models.User
+		err := res.Decode(&elem)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		results = append(results, elem)
+
+	}
+
+	if err := res.Err(); err != nil {
+		log.Fatal(err)
+	}
+	//Close the cursor once finished
+	res.Close(context.TODO())
+
+	return err, results[0].Skills
+}
+
 func (r *UserRepository) GetAllUsers(ctx context.Context) (error, []models.User) {
 
 	findOptions := options.Find()

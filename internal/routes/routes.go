@@ -40,7 +40,7 @@ func SetupControllerRoutes(router *gin.Engine, linkedInController *controllers.L
 	{
 		jobs := v1.Group("/ingest")
 		{
-			jobs.POST("/", linkedInController.CreateJob)
+			jobs.POST("/:userId", linkedInController.CreateJob)
 			jobs.GET("/:userId", linkedInController.GetJobsForUserID)
 
 			// Define other routes
@@ -64,6 +64,7 @@ func SetupControllerRoutesForUser(router *gin.Engine, userController *controller
 			jobs.POST("/", userController.Create)
 			jobs.GET("/all", userController.GetAllUsers)
 			jobs.PUT("/update/:userId", userController.UpdateUser)
+			jobs.GET("/skills/:userId", userController.GetSkillsForUser)
 			// Define other routes
 		}
 	}
