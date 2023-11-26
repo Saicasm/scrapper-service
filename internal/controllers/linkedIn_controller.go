@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gin-gonic/gin"
+	"github.com/goccy/go-json"
 	"github.com/scraper/internal/models"
 	"github.com/scraper/internal/services"
 	"github.com/sirupsen/logrus"
@@ -21,6 +22,12 @@ type LinkedInController struct {
 	Log           *logrus.Logger
 	SkillEndpoint string // Define the endpoint URL for skills
 }
+type extractorResponse struct {
+	TechnicalTerms []string `json:"technical_terms"`
+	Score          string   `json:"score"`
+}
+
+const userSkillsEndpoint = "http://localhost:8080/api/v1/ingest/user/skills/saicsm@gmail.com"
 
 func NewLinkedInController(service services.LinkedInService, log *logrus.Logger, skillEndpoint string) *LinkedInController {
 	return &LinkedInController{
@@ -50,7 +57,7 @@ func (c *LinkedInController) CreateJob(ctx *gin.Context) {
 	// Create channels for extracted data
 	titleChan := make(chan string)
 	descriptionChan := make(chan string)
-	skillsChan := make(chan string)
+	//skillsChan := make(chan []string)
 	compensationChan := make(chan string)
 	companyChan := make(chan string)
 
@@ -58,7 +65,7 @@ func (c *LinkedInController) CreateJob(ctx *gin.Context) {
 	// TODO: Extract skills from the description  chan
 	go extractData(doc, ".job-details-jobs-unified-top-card__job-title", titleChan)
 	go extractData(doc, ".jobs-description__content", descriptionChan)
-	go extractData(doc, ".jobs-description__content", skillsChan)
+	//go extractData(doc, ".jobs-description__content", skillsChan)
 	go extractData(doc, ".job-details-jobs-unified-top-card__job-insight", compensationChan)
 	go extractData(doc, ".job-details-jobs-unified-top-card__primary-description", companyChan)
 	// Receive extracted data from channels
@@ -66,33 +73,35 @@ func (c *LinkedInController) CreateJob(ctx *gin.Context) {
 	// Store the data into the structs
 	linkedin.Title = <-titleChan
 	linkedin.JobDescription = <-descriptionChan
-	linkedin.Skills = <-skillsChan
+	//linkedin.Skills = <-skillsChan
 	linkedin.Compensation = <-compensationChan
 	linkedin.CompanyName = <-companyChan
+	userid := ctx.Param("userId")
 	//TODO: Get the data from the request
-	linkedin.UserId = "saicsm@gmail.com"
+	linkedin.UserId = userid
+	linkedin.Status = models.Status(models.INTERESTED)
 	// Clean the data
 	cleanData(&linkedin.Title)
 	cleanData(&linkedin.JobDescription)
-	cleanData(&linkedin.Skills)
+	//cleanData(&linkedin.Skills)
 	cleanData(&linkedin.Compensation)
-	fmt.Println("Compensation", linkedin.Compensation)
 
-	extractedSkills := linkedin.Skills
+	extractedSkills := linkedin.JobDescription
 	cleanedText := removeWhitespaces(linkedin.Compensation)
 
 	cleanedComp := extractCompensation(cleanedText)
-	fmt.Println("Cleamned one: ", cleanedComp)
 
 	linkedin.Compensation = cleanedComp
-	newSkills, err := c.sendSkillsToEndpoint(extractedSkills)
+	userSkills, err := c.getSkillsForUser(userid)
+	fmt.Printf("%v", userSkills)
+	newSkills, score, err := c.sendSkillsToEndpoint(extractedSkills, userSkills)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send skills data"})
 		return
 	}
-
 	// Update the LinkedIn model with the new skills
 	linkedin.Skills = newSkills
+	linkedin.Score = score
 	splitNameFromJD(&linkedin)
 	if err := c.Service.Create(&linkedin); err != nil {
 		c.Log.WithError(err).Error("Failed to create a new job")
@@ -113,12 +122,10 @@ func extractCompensation(cleanedText string) string {
 
 	compensationHyphenIndex := strings.Index(cleanedText, "-")
 	if compensationHyphenIndex != -1 && (cleanedText[(compensationHyphenIndex-1)] == 'r') {
-		fmt.Println("Cleaned with hyphen", cleanedText[:(compensationHyphenIndex+(compensationHyphenIndex-1)+3)])
 		return cleanedText[:(compensationHyphenIndex + (compensationHyphenIndex - 1) + 3)]
 	} else {
 		compensationRIndex := strings.IndexByte(cleanedText, 'r')
 
-		fmt.Println("Cleaned COmp", cleanedText[:compensationRIndex+1])
 		return cleanedText[:compensationRIndex+1]
 	}
 }
@@ -133,7 +140,6 @@ func removeWhitespaces(input string) string {
 }
 
 func splitNameFromJD(linkedData *models.LinkedIn) {
-	fmt.Println("data", linkedData.CompanyName)
 	delimiter := " · "
 	parts := strings.SplitN(linkedData.CompanyName, delimiter, 2)
 	if len(parts) == 2 {
@@ -144,7 +150,6 @@ func splitNameFromJD(linkedData *models.LinkedIn) {
 
 		// Find the first matching location in the string
 		match := re.FindString(locationPart)
-		fmt.Println("Company", companyName)
 		// Trim any extra whitespace
 		location := match
 		location = strings.TrimSpace(location)
@@ -156,10 +161,63 @@ func splitNameFromJD(linkedData *models.LinkedIn) {
 }
 
 // The function is responsible for sending JD to extractor engine and filter out the skills from the JD
-func (c *LinkedInController) sendSkillsToEndpoint(skills string) (string, error) {
-	payload := []byte(`{"text": "` + skills + `"}`)
-	fmt.Println("payload", bytes.NewBuffer(payload))
+func (c *LinkedInController) sendSkillsToEndpoint(skills string, userSkills []string) ([]string, string, error) {
+
+	data := map[string]interface{}{
+		"text":       skills,
+		"userSkills": userSkills,
+	}
+
+	// Convert the map to a JSON string
+	payload, err := json.Marshal(data)
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+
 	req, err := http.NewRequest("POST", c.SkillEndpoint, bytes.NewBuffer(payload))
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+	}
+	// Set the Content-Type header
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	fmt.Println("resp", resp)
+	// Handle the response or error
+	if err != nil {
+		c.Log.WithError(err).Error("Failed to send skills data")
+		return make([]string, 0), string(rune(0)), err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		c.Log.Errorf("Received non-OK response: %d", resp.StatusCode)
+		return make([]string, 0), string(rune(0)), fmt.Errorf("Received non-OK response: %d", resp.StatusCode)
+	}
+
+	// Read and return the new skills from the response
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		c.Log.WithError(err).Error("Failed to read response body")
+		return make([]string, 0), string(rune(0)), err
+	}
+	var extractorResp extractorResponse
+	err = json.Unmarshal([]byte(body), &extractorResp)
+	if err != nil {
+		fmt.Println("Error unmarshalling score:", err)
+		return make([]string, 0), string(rune(0)), err
+	}
+	return extractorResp.TechnicalTerms, extractorResp.Score, err
+}
+
+func (c *LinkedInController) getSkillsForUser(userId string) ([]string, error) {
+
+	req, err := http.NewRequest("GET", userSkillsEndpoint, nil)
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+
+	}
+
+	// Set the Content-Type header
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
@@ -168,24 +226,29 @@ func (c *LinkedInController) sendSkillsToEndpoint(skills string) (string, error)
 	// Handle the response or error
 	if err != nil {
 		c.Log.WithError(err).Error("Failed to send skills data")
-		return "", err
+		return make([]string, 0), err
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		c.Log.Errorf("Received non-OK response: %d", resp.StatusCode)
-		return "", fmt.Errorf("Received non-OK response: %d", resp.StatusCode)
+		return make([]string, 0), fmt.Errorf("Received non-OK response: %d", resp.StatusCode)
 	}
 
 	// Read and return the new skills from the response
-	newSkills, err := ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		c.Log.WithError(err).Error("Failed to read response body")
-		return "", err
+		return make([]string, 0), err
 	}
-
-	return string(newSkills), nil
+	var skills []string
+	err = json.Unmarshal(body, &skills)
+	if err != nil {
+		fmt.Println("Error unmarshalling response:", err)
+		return nil, nil
+	}
+	return skills, nil
 }
 
 // Implement other CRUD operations in a similar manner.
