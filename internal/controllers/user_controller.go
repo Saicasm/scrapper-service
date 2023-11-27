@@ -53,7 +53,7 @@ func (c *UserController) UpdateUser(ctx *gin.Context) {
 		log.Fatal(err)
 		return
 	}
-	update := bson.D{{"$set", bson.D{{"first_name", user.FirstName}, {"last_name", user.LastName}, {"skills", user.Skills}, {"location", user.Location}, {"email", user.Email}, {"updated_at", time.Now()}}}}
+	update := bson.D{{"$set", bson.D{{"first_name", user.FirstName}, {"last_name", user.LastName}, {"skills", user.Skills}, {"location", user.Location}, {"email", user.Email}, {"dob", user.DOB}, {"title", user.Title}, {"work_history", user.WorkHistory}, {"education", user.Education}, {"updated_at", time.Now()}}}}
 	if err, res := c.Service.Update(filter, update); err != nil {
 		c.Log.WithError(err).Error("Failed to create a new job")
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create a new job"})
@@ -77,6 +77,17 @@ func (c *UserController) GetSkillsForUser(ctx *gin.Context) {
 	filter := bson.M{"email": userid}
 	c.Log.Debug("Get All Users")
 	if err, result := c.Service.GetUserSkills(filter); err != nil {
+		c.Log.WithError(err).Error("Failed to create a new job")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create a new job"})
+	} else {
+		ctx.JSON(http.StatusOK, result)
+	}
+}
+func (c *UserController) GetUserById(ctx *gin.Context) {
+	userid := ctx.Param("userId")
+	filter := bson.M{"email": userid}
+	c.Log.Debug("Get All Users")
+	if err, result := c.Service.GetUserById(filter); err != nil {
 		c.Log.WithError(err).Error("Failed to create a new job")
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create a new job"})
 	} else {

@@ -85,6 +85,34 @@ func (r *UserRepository) GetSkillsForUser(ctx context.Context, filter interface{
 	return err, results[0].Skills
 }
 
+func (r *UserRepository) GetUserById(ctx context.Context, filter interface{}) (error, []models.User) {
+	opts := options.Find()
+	res, err := r.Collection.Find(ctx, filter, opts)
+	if err != nil {
+		r.Log.WithError(err).Error("Failed to Get user")
+	}
+	var results []models.User
+	for res.Next(context.TODO()) {
+		//Create a value into which the single document can be decoded
+		var elem models.User
+		err := res.Decode(&elem)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		results = append(results, elem)
+
+	}
+
+	if err := res.Err(); err != nil {
+		log.Fatal(err)
+	}
+	//Close the cursor once finished
+	res.Close(context.TODO())
+
+	return err, results
+}
+
 func (r *UserRepository) GetAllUsers(ctx context.Context) (error, []models.User) {
 
 	findOptions := options.Find()

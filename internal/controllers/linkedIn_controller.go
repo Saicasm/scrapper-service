@@ -11,10 +11,13 @@ import (
 	"github.com/scraper/internal/services"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type LinkedInController struct {
@@ -251,8 +254,6 @@ func (c *LinkedInController) getSkillsForUser(userId string) ([]string, error) {
 	return skills, nil
 }
 
-// Implement other CRUD operations in a similar manner.
-
 func (c *LinkedInController) GetJobsForUserID(ctx *gin.Context) {
 	userid := ctx.Param("userId")
 	filter := bson.M{"user_id": userid}
@@ -262,5 +263,33 @@ func (c *LinkedInController) GetJobsForUserID(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create a new job"})
 	} else {
 		ctx.JSON(http.StatusOK, result)
+	}
+}
+func (c *LinkedInController) GetAnalyticsForUser(ctx *gin.Context) {
+	userid := ctx.Param("userId")
+	c.Log.Debug("Get Jobs For UserID ")
+	if err, result := c.Service.GetAnalyticsForUser(userid); err != nil {
+		c.Log.WithError(err).Error("Failed to get analytics for the user")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to analytics for the user"})
+	} else {
+		ctx.JSON(http.StatusOK, result)
+	}
+}
+func (c *LinkedInController) UpdateJob(ctx *gin.Context) {
+	userid := ctx.Param("jobId")
+	objId, _ := primitive.ObjectIDFromHex(userid)
+	filter := bson.M{"_id": objId}
+	job := models.NewLinkedIn()
+	if err := ctx.BindJSON(&job); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": err})
+		log.Fatal(err)
+		return
+	}
+	update := bson.D{{"$set", bson.D{{"status", job.Status}, {"compensation", job.Compensation}, {"user_id", job.UserId}, {"updated_at", time.Now()}}}}
+	if err, res := c.Service.Update(filter, update); err != nil {
+		c.Log.WithError(err).Error("Failed to create a new job")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create a new job"})
+	} else {
+		ctx.JSON(http.StatusOK, res)
 	}
 }
