@@ -40,10 +40,8 @@ func (r *LinkedInRepository) Update(ctx context.Context, filter interface{}, upd
 		fmt.Println("matched and replaced an existing document")
 	}
 	if res.MatchedCount < 1 {
-		r.Log.WithError(err).Error("No user Found")
+		r.Log.WithError(err).Error("No Job Found")
 	} else {
-		fmt.Printf("present")
-
 	}
 
 	return err, result
